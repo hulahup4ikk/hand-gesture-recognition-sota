@@ -1,0 +1,1 @@
+"""Web demo application package."""
