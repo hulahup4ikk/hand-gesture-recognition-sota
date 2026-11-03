@@ -1,0 +1,44 @@
+{
+  "baseline_mobilenet": {
+    "accuracy": 0.9375,
+    "macro_f1": 0.9419,
+    "per_class": {
+      "like": {
+        "precision": 0.8333,
+        "recall": 1.0,
+        "f1": 0.9091
+      },
+      "palm": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "peace": {
+        "precision": 1.0,
+        "recall": 0.8462,
+        "f1": 0.9167
+      }
+    }
+  },
+  "sota_convnext": {
+    "accuracy": 0.9844,
+    "macro_f1": 0.9853,
+    "per_class": {
+      "like": {
+        "precision": 0.9524,
+        "recall": 1.0,
+        "f1": 0.9756
+      },
+      "palm": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "peace": {
+        "precision": 1.0,
+        "recall": 0.9615,
+        "f1": 0.9804
+      }
+    }
+  }
+}
