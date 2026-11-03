@@ -1,5 +1,6 @@
 """
 Streamlit Web Application for Hand Gesture Recognition with Grad-CAM Explainability.
+Course: Computer Vision, Astana IT University (AITU)
 """
 
 import os
@@ -24,18 +25,10 @@ except ImportError:
 
 # Page configuration
 st.set_page_config(
-    page_title="Hand Gesture Recognition SOTA & XAI",
-    page_icon="🖐️",
+    page_title="Hand Gesture Recognition - Assignment 2",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# Gesture Emojis
-GESTURE_EMOJIS = {
-    "like": "👍",
-    "palm": "✋",
-    "peace": "✌️"
-}
 
 # Cache model loading to avoid reloading on each interaction
 @st.cache_resource
@@ -49,31 +42,32 @@ def get_model(model_name: str, weights_path: str, device: str):
 
 
 def main():
-    st.title("🖐️ Hand Gesture Recognition with SOTA Vision & Grad-CAM")
+    st.title("Hand Gesture Recognition & Visual Explainability")
+    st.caption("Computer Vision Assignment 2 | Astana IT University")
     st.markdown(
-        "Interactive Computer Vision demo featuring modern **SOTA architectures** (ConvNeXt-Tiny) "
-        "compared against the **MobileNetV2 baseline**, augmented with **Grad-CAM visual explainability** "
-        "and real-time inference latency tracking."
+        "Benchmarking modern convolutional architecture (**ConvNeXt-Tiny**) against "
+        "lightweight baseline (**MobileNetV2**) on 3 gesture classes (`like`, `palm`, `peace`) "
+        "with **Grad-CAM** saliency maps and latency profiling."
     )
 
     # Sidebar configuration
-    st.sidebar.header("⚙️ Configuration")
+    st.sidebar.header("Settings")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    st.sidebar.info(f"Compute Device: **{device.upper()}**")
+    st.sidebar.text(f"Compute Device: {device.upper()}")
 
     model_choice = st.sidebar.selectbox(
-        "Select Model Architecture:",
+        "Model Architecture:",
         options=["ConvNeXt-Tiny (SOTA)", "MobileNetV2 (Baseline)", "Side-by-Side Comparison"]
     )
 
     cam_alpha = st.sidebar.slider(
-        "Grad-CAM Overlay Opacity (α):",
+        "Grad-CAM Heatmap Blend (α):",
         min_value=0.2,
         max_value=0.8,
         value=0.55,
         step=0.05,
-        help="Controls the blend ratio between the Grad-CAM heatmap and original image."
+        help="Controls the blending factor between the activation map and the original image."
     )
 
     # Weights paths
@@ -81,25 +75,25 @@ def main():
     convnext_weights = str(ROOT_DIR / "weights" / "sota_convnext.pth")
 
     st.sidebar.markdown("---")
-    st.sidebar.subheader("Model Status")
-    st.sidebar.write(f"- Baseline weights: `{'Found' if os.path.exists(mobilenet_weights) else 'Missing'}`")
-    st.sidebar.write(f"- SOTA weights: `{'Found' if os.path.exists(convnext_weights) else 'Missing'}`")
+    st.sidebar.subheader("Model Checkpoints")
+    st.sidebar.text(f"Baseline: {'Available' if os.path.exists(mobilenet_weights) else 'Missing'}")
+    st.sidebar.text(f"ConvNeXt: {'Available' if os.path.exists(convnext_weights) else 'Missing'}")
 
     # Main input section
-    input_method = st.radio("Choose Input Source:", ["Upload Image", "Use Webcam"], horizontal=True)
+    input_method = st.radio("Input Source:", ["Upload Image", "Webcam Capture"], horizontal=True)
 
     input_image = None
     if input_method == "Upload Image":
-        uploaded_file = st.file_uploader("Upload a gesture image (JPG, PNG)", type=["jpg", "jpeg", "png"])
+        uploaded_file = st.file_uploader("Select an image file (JPG, PNG):", type=["jpg", "jpeg", "png"])
         if uploaded_file is not None:
             input_image = Image.open(uploaded_file)
     else:
-        camera_file = st.camera_input("Take a snapshot of your hand gesture")
+        camera_file = st.camera_input("Capture frame:")
         if camera_file is not None:
             input_image = Image.open(camera_file)
 
     if input_image is None:
-        st.info("👆 Please upload an image or take a photo with your webcam to begin.")
+        st.info("Upload an image or capture a frame from the webcam to perform inference.")
         return
 
     st.markdown("---")
@@ -115,58 +109,56 @@ def main():
 
         # Metric cards
         col_m1, col_m2, col_m3 = st.columns(3)
-        emoji = GESTURE_EMOJIS.get(results["predicted_label"], "")
-        col_m1.metric("Predicted Gesture", f"{emoji} {results['predicted_label'].upper()}")
-        col_m2.metric("Confidence Score", f"{results['confidence'] * 100:.1f}%")
-        col_m3.metric("Latency / Device", f"{results['latency_ms']:.1f} ms ({device.upper()})")
+        col_m1.metric("Predicted Gesture", results["predicted_label"].upper())
+        col_m2.metric("Confidence", f"{results['confidence'] * 100:.2f}%")
+        col_m3.metric("Latency", f"{results['latency_ms']:.1f} ms ({device.upper()})")
 
         # Side-by-side visualization
         col_left, col_right = st.columns(2)
         with col_left:
-            st.subheader("📷 Original Input")
+            st.subheader("Input Image")
             st.image(input_image, use_container_width=True)
 
         with col_right:
-            st.subheader("🔥 Grad-CAM Attention Heatmap")
+            st.subheader("Grad-CAM Activation Map")
             st.image(results["overlay_rgb"], use_container_width=True)
-            st.caption("Warm regions (red/yellow) indicate where the model is looking to classify the gesture.")
+            st.caption("Normalized class activation mapping (CAM) on the final convolutional stage.")
 
         # Probability distribution
-        st.subheader("📊 Class Probabilities")
+        st.subheader("Class Probability Distribution")
         prob_df = pd.DataFrame({
-            "Gesture": [f"{GESTURE_EMOJIS.get(c, '')} {c.capitalize()}" for c in CLASSES],
+            "Gesture": [c.capitalize() for c in CLASSES],
             "Probability": [results["probabilities"][c] for c in CLASSES]
         })
         st.bar_chart(prob_df.set_index("Gesture"))
 
     # Side-by-side comparison mode
     else:
-        st.subheader("⚡ Side-by-Side Model Comparison")
+        st.subheader("Model Comparison: Baseline vs SOTA")
         col_base, col_sota = st.columns(2)
 
         # Baseline
         with col_base:
-            st.markdown("### 🔹 Baseline: MobileNetV2")
+            st.markdown("### Baseline: MobileNetV2")
             base_model, base_layer = get_model("mobilenet", mobilenet_weights, device)
             base_res = predict_and_explain(base_model, base_layer, input_image, device=device, cam_alpha=cam_alpha)
 
-            st.write(f"**Prediction:** {GESTURE_EMOJIS.get(base_res['predicted_label'], '')} `{base_res['predicted_label'].upper()}`")
-            st.write(f"**Confidence:** `{base_res['confidence']*100:.1f}%`")
+            st.write(f"**Prediction:** `{base_res['predicted_label'].upper()}`")
+            st.write(f"**Confidence:** `{base_res['confidence']*100:.2f}%`")
             st.write(f"**Latency:** `{base_res['latency_ms']:.1f} ms`")
             st.image(base_res["overlay_rgb"], caption="MobileNetV2 Grad-CAM", use_container_width=True)
 
         # SOTA
         with col_sota:
-            st.markdown("### 🚀 SOTA: ConvNeXt-Tiny")
+            st.markdown("### SOTA: ConvNeXt-Tiny")
             sota_model, sota_layer = get_model("convnext", convnext_weights, device)
             sota_res = predict_and_explain(sota_model, sota_layer, input_image, device=device, cam_alpha=cam_alpha)
 
-            st.write(f"**Prediction:** {GESTURE_EMOJIS.get(sota_res['predicted_label'], '')} `{sota_res['predicted_label'].upper()}`")
-            st.write(f"**Confidence:** `{sota_res['confidence']*100:.1f}%`")
+            st.write(f"**Prediction:** `{sota_res['predicted_label'].upper()}`")
+            st.write(f"**Confidence:** `{sota_res['confidence']*100:.2f}%`")
             st.write(f"**Latency:** `{sota_res['latency_ms']:.1f} ms`")
             st.image(sota_res["overlay_rgb"], caption="ConvNeXt-Tiny Grad-CAM", use_container_width=True)
 
 
 if __name__ == "__main__":
     main()
-
