@@ -2,12 +2,19 @@
 Inference and Grad-CAM utility functions for the Streamlit demo.
 """
 
+import sys
 import time
+from pathlib import Path
 from typing import Dict, Any, Tuple
 import numpy as np
 from PIL import Image
 import torch
 import torch.nn.functional as F
+
+# Add project root to sys.path
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from src.dataset import IMAGENET_MEAN, IMAGENET_STD, CLASSES, IDX_TO_CLASS, get_default_transforms
 from src.gradcam import GradCAM, apply_colormap_on_image

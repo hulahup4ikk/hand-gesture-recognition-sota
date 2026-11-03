@@ -17,7 +17,10 @@ if str(ROOT_DIR) not in sys.path:
 
 from src.model import load_model
 from src.dataset import CLASSES
-from app.utils import predict_and_explain
+try:
+    from utils import predict_and_explain
+except ImportError:
+    from app.utils import predict_and_explain
 
 # Page configuration
 st.set_page_config(
